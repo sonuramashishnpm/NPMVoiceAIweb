@@ -4,7 +4,7 @@ app=Flask(__name__)
 CORS(app)
 
 
-@app.route("/", methods=["POST"])
+@app.route("/", methods=["GET"])
 def voice_llm():
     data = request.json
     prompt = data.get("prompt")
