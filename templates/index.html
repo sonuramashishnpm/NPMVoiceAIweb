@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>NPM Voice A.I</title>
+
+<style>
+body { margin:0; font-family:Poppins; color:#fff; }
+.header {
+  padding:20px;
+  font-size:36px;
+  background:linear-gradient(90deg,#1e3a8a,#3b82f6);
+}
+#bg {
+  position:fixed; inset:0;
+  object-fit:cover; z-index:-2;
+}
+#overlay {
+  position:fixed; inset:0;
+  background:rgba(10,10,30,.6); z-index:-1;
+}
+.center {
+  text-align:center;
+  margin-top:80px;
+}
+button, select {
+  padding:12px 20px;
+  border-radius:25px;
+  border:none;
+  font-size:16px;
+}
+#response {
+  max-width:850px;
+  margin:20px auto;
+  background:#0f172a;
+  padding:15px;
+  border-radius:8px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">NPM Voice A.I</div>
+
+<video autoplay muted loop id="bg">
+  <source src="https://storage.googleapis.com/coverr-main/mp4/Mt_Baker.mp4">
+</video>
+<div id="overlay"></div>
+
+<div class="center">
+  <select id="llm">
+    <option>ChatGPT</option>
+    <option>Gemini</option>
+    <option>GeminiAIMode</option>
+    <option>Mistral</option>
+    <option>Perplexity</option>
+    <option>Grok</option>
+  </select>
+
+  <br><br>
+  <button onclick="startListening()">🎤 Speak</button>
+</div>
+
+<div id="response"></div>
+
+<script>
+let recognition;
+
+function startListening() {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  recognition = new SpeechRecognition();
+  recognition.lang = "hi-IN";
+  recognition.interimResults = false;
+
+  recognition.start();
+
+  recognition.onresult = async (event) => {
+    const text = event.results[0][0].transcript;
+    askLLM(text);
+  };
+}
+
+async function askLLM(text) {
+  document.getElementById("response").innerText = "Thinking...";
+
+  const res = await fetch("/voice-llm", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      prompt: text + " (reply in roman lipi)",
+      llm: document.getElementById("llm").value
+    })
+  });
+
+  const data = await res.json();
+  document.getElementById("response").innerText = data.response;
+  speak(data.response);
+}
+
+function speak(text) {
+  const msg = new SpeechSynthesisUtterance(text);
+  msg.lang = "hi-IN";
+  msg.rate = 0.95;
+  speechSynthesis.speak(msg);
+}
+</script>
+
+</body>
+</html>
