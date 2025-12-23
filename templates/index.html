@@ -1,102 +1,88 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>NPM Voice A.I</title>
-
-<style>
-body { margin:0; font-family:Poppins; color:#fff; }
-.header {
-  padding:20px;
-  font-size:36px;
-  background:linear-gradient(90deg,#1e3a8a,#3b82f6);
-}
-#bg {
-  position:fixed; inset:0;
-  object-fit:cover; z-index:-2;
-}
-#overlay {
-  position:fixed; inset:0;
-  background:rgba(10,10,30,.6); z-index:-1;
-}
-.center {
-  text-align:center;
-  margin-top:80px;
-}
-button, select {
-  padding:12px 20px;
-  border-radius:25px;
-  border:none;
-  font-size:16px;
-}
-#response {
-  max-width:850px;
-  margin:20px auto;
-  background:#0f172a;
-  padding:15px;
-  border-radius:8px;
-}
-</style>
+  <title>NPM A.I</title>
+  <link rel="stylesheet" href="NPMaistyle.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-
 <body>
+  <header class="header">NPM A.I.</header>
 
-<div class="header">NPM Voice A.I</div>
+  <video autoplay muted loop id="background-video">
+    <source src="NPM ai backgrond video.mp4" type="video/mp4">
+  </video>
+  <div id="video-overlay"></div>
 
-<video autoplay muted loop id="bg">
-  <source src="https://storage.googleapis.com/coverr-main/mp4/Mt_Baker.mp4">
-</video>
-<div id="overlay"></div>
+  <h2>NPM A.I ask anything</h2>
 
-<div class="center">
-  <button onclick="startListening()">🎤 Speak</button>
-</div>
+  <p>AI:</p>
+  <p id="response"></p>
 
-<div id="response"></div>
+  <div class="stickdiv">
+    <input type="text" id="userInput" placeholder="Type your question here..." />
+    <button onclick="askAI()">Send</button>
+    <button onclick="startListening()">🎤 Speak</button>
+  </div> 
 
 <script>
-let recognition;
-
 function startListening() {
-  const SpeechRecognition =
-    window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = "en-IN"; // "hi-IN" for Hindi
+    recognition.interimResults = false;
 
-  recognition = new SpeechRecognition();
-  recognition.lang = "hi-IN";
-  recognition.interimResults = false;
+    recognition.onstart = () => {
+        document.getElementById("userInput").placeholder = "🎙️ Listening...";
+    };
 
-  recognition.start();
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById("userInput").value = transcript;
+        document.getElementById("userInput").placeholder = "Type your question here...";
+        askAI(); // auto-send after speech
+    };
 
-  recognition.onresult = async (event) => {
-    const text = event.results[0][0].transcript;
-    askLLM(text);
-  };
+    recognition.onerror = (event) => {
+        alert("🎤 Voice error: " + event.error);
+        document.getElementById("userInput").placeholder = "Type your question here...";
+    };
+
+    recognition.start();
 }
 
-async function askLLM(text) {
-  document.getElementById("response").innerText = "Thinking...";
+async function askAI() {
+    const input = document.getElementById("userInput").value.trim();
+    const responseBox = document.getElementById("response");
 
-  const res = await fetch("/voice-llm", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({
-      prompt: text + " (reply in roman lipi)",
-      llm: document.getElementById("llm").value
-    })
-  });
+    if (!input) {
+        responseBox.textContent = "❗ Please type something!";
+        return;
+    }
 
-  const data = await res.json();
-  document.getElementById("response").innerText = data.response;
-  speak(data.response);
+    responseBox.textContent = "🧠 Thinking...";
+
+    try {
+        const res = await fetch("/NPMai-ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: input })
+        });
+
+        const data = await res.json();
+        responseBox.textContent = data.response;
+        speak(data.response);
+
+    } catch (err) {
+        responseBox.textContent = "❌ Failed to get AI response.";
+        console.error(err);
+    }
 }
 
 function speak(text) {
-  const msg = new SpeechSynthesisUtterance(text);
-  msg.lang = "hi-IN";
-  msg.rate = 0.95;
-  speechSynthesis.speak(msg);
+    const msg = new SpeechSynthesisUtterance(text);
+    msg.lang = "en-IN";
+    msg.rate = 0.95;
+    speechSynthesis.speak(msg);
 }
 </script>
-
 </body>
 </html>
